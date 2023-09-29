@@ -1,0 +1,54 @@
+﻿@page "/chat"
+@using chatbot.Data;
+@using chatbot.Services;
+@inject OpenAIService ChatService;
+<h3>Escribe tu consulta</h3>
+
+<div id="chat-box">
+    @foreach (var message in messages)
+    {
+        <p class="chat-message @message.Type">@message.Text</p>
+    }
+</div>
+
+<br/>
+<textarea @bind="@messageInput" placeholder="Escribe tu mensaje..."></textarea>
+<button @onclick="SendMessage">Enviar</button>
+@if (isAnswering)
+{
+    <p class="answering">
+        Answering...
+    </p>
+}
+
+@code {
+    private string? messageInput;
+    private List<Message> messages = new List<Message>();
+    public bool isAnswering = false;
+    public class Message
+    {
+        public string? Text { get; set; }
+        public string? Type { get; set; }
+    }
+
+    private async void SendMessage()
+    {
+        if (!string.IsNullOrWhiteSpace(messageInput))
+        {
+
+            string message = messageInput;
+            messageInput = "";
+            messages.Add(new Message { Text = "Tú: " + message, Type = "sent" });
+            isAnswering = true;
+            GPTResponse response = await ChatService.Preguntar(message);
+            isAnswering = false;
+            ReceiveMessage(response.Choices?[0]!.Message!.Content!);
+            StateHasChanged();
+        }
+    }
+
+    private void ReceiveMessage(string message)
+    {
+        messages.Add(new Message { Text = "Bot: " + message, Type = "received" });
+    }
+}
